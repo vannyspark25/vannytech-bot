@@ -1,17 +1,18 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
+const puppeteer = require('puppeteer');
 
-// ── keep-alive server for Render ───────────────────────────────
+// ── keep-alive server ──
 const app = express();
 app.get('/', (req, res) => res.send('✅ Vanny Tech Bot is running!'));
-app.listen(3000, () => console.log('Keep-alive server running on port 3000'));
+app.listen(process.env.PORT || 3000, () => console.log('Keep-alive server on port 3000'));
 
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        executablePath: process.env.CHROME_BIN || '/usr/bin/chromium-browser',
+        executablePath: puppeteer.executablePath(),
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -146,19 +147,14 @@ client.on('message', async msg => {
     const sess = getSession(id);
 
     if (['hi','hello','hallo','start','menu'].includes(body.toLowerCase()) && sess.step === 'main') {
-        await msg.reply(MAIN_MENU);
-        return;
+        await msg.reply(MAIN_MENU); return;
     }
-    if (body === '0') {
-        sess.step = 'main';
-        await msg.reply(MAIN_MENU);
-        return;
-    }
+    if (body === '0') { sess.step = 'main'; await msg.reply(MAIN_MENU); return; }
 
     if (sess.step === 'main') {
         if (body === '1')      { sess.step = 'bundles'; await msg.reply(BUNDLES_MENU); }
         else if (body === '2') { sess.step = 'social';  await msg.reply(SOCIAL_MENU); }
-        else if (body === '3') { await msg.reply('👤 An agent will reach you shortly. Thank you for your patience!'); }
+        else if (body === '3') { await msg.reply('👤 An agent will reach you shortly!'); }
         else { await msg.reply(MAIN_MENU); }
         return;
     }
@@ -166,8 +162,7 @@ client.on('message', async msg => {
     if (sess.step === 'bundles') {
         const map = { '1': 'safaricom', '2': 'airtel', '3': 'telkom' };
         if (map[body]) {
-            sess.network = map[body];
-            sess.step = `bundles_${map[body]}`;
+            sess.network = map[body]; sess.step = `bundles_${map[body]}`;
             const menus = { safaricom: SAFARICOM_BUNDLES, airtel: AIRTEL_BUNDLES, telkom: TELKOM_BUNDLES };
             await msg.reply(menus[map[body]]);
         } else { await msg.reply(BUNDLES_MENU); }
@@ -175,15 +170,14 @@ client.on('message', async msg => {
     }
 
     if (sess.step && sess.step.startsWith('bundles_')) {
-        const net  = sess.network;
-        const pkgs = bundleDetails[net];
+        const pkgs = bundleDetails[sess.network];
         const idx  = parseInt(body) - 1;
         if (pkgs && idx >= 0 && idx < pkgs.length) {
             sess.step = 'main';
             await msg.reply(PAYMENT_MSG(pkgs[idx].name, pkgs[idx].price));
         } else {
             const menus = { safaricom: SAFARICOM_BUNDLES, airtel: AIRTEL_BUNDLES, telkom: TELKOM_BUNDLES };
-            await msg.reply(menus[net]);
+            await msg.reply(menus[sess.network]);
         }
         return;
     }
@@ -191,8 +185,7 @@ client.on('message', async msg => {
     if (sess.step === 'social') {
         const idx = parseInt(body) - 1;
         if (idx >= 0 && idx < socialPlatforms.length) {
-            sess.platform = socialPlatforms[idx];
-            sess.step = 'social_package';
+            sess.platform = socialPlatforms[idx]; sess.step = 'social_package';
             await msg.reply(socialPackages(sess.platform));
         } else { await msg.reply(SOCIAL_MENU); }
         return;
@@ -201,8 +194,7 @@ client.on('message', async msg => {
     if (sess.step === 'social_package') {
         const idx = parseInt(body) - 1;
         if (idx >= 0 && idx < socialPrices.length) {
-            const pkg  = socialPrices[idx];
-            sess.step  = 'main';
+            const pkg = socialPrices[idx]; sess.step = 'main';
             await msg.reply(PAYMENT_MSG(`${sess.platform} – ${pkg.followers}`, pkg.price));
         } else { await msg.reply(socialPackages(sess.platform)); }
         return;
@@ -210,9 +202,8 @@ client.on('message', async msg => {
 
     if (body.toUpperCase().startsWith('PAID')) {
         const phone = body.split(' ')[1] || 'your number';
-        await msg.reply(`✅ Payment received for *${phone}*.\n\nOrder processing ⚙️\nDelivery in *5 minutes*.\n\nFor help reply *3*. 😊`);
-        sess.step = 'main';
-        return;
+        await msg.reply(`✅ Payment received for *${phone}*.\n\nProcessing ⚙️ Delivery in *5 minutes*.\n\nFor help reply *3* 😊`);
+        sess.step = 'main'; return;
     }
 
     await msg.reply(MAIN_MENU);
@@ -223,8 +214,6 @@ client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
 });
 
-client.on('ready', () => {
-    console.log('✅ VANNY TECH WhatsApp bot is live!');
-});
+client.on('ready', () => console.log('✅ VANNY TECH Bot is live!'));
 
 client.initialize();
