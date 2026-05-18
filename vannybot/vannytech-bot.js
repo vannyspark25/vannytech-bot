@@ -1,17 +1,8 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const express = require('express');
-
-// ── keep-alive server for Render ───────────────────────────────
-const app = express();
-app.get('/', (req, res) => res.send('✅ Vanny Tech Bot is running!'));
-app.listen(3000, () => console.log('Keep-alive server running on port 3000'));
-
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        executablePath: '/opt/render/.cache/puppeteer/chrome/linux-146.0.7680.31/chrome-linux64/chrome',
+        executablePath: process.env.CHROME_BIN || '/usr/bin/chromium-browser',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
