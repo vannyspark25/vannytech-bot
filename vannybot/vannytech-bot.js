@@ -8,7 +8,20 @@ app.get('/', (req, res) => res.send('✅ Vanny Tech Bot is running!'));
 app.listen(3000, () => console.log('Keep-alive server running on port 3000'));
 
 const client = new Client({
-    authStrategy: new LocalAuth()
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+        ]
+    }
 });
 
 // ── session store ──────────────────────────────────────────────
