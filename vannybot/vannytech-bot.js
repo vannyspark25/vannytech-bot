@@ -2,6 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
 const puppeteer = require('puppeteer');
+const path = require('path');
 
 // ── keep-alive server ──
 const app = express();
@@ -13,6 +14,7 @@ const client = new Client({
     puppeteer: {
         headless: true,
         executablePath: puppeteer.executablePath(),
+        userDataDir: path.join(process.env.HOME || '/tmp', '.wbot'),
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
