@@ -16,16 +16,15 @@ async function getChromeExecutablePath() {
     
     try {
         console.log('Attempting to get Chrome executable path...');
-        chromeExecutablePath = puppeteer.executablePath();
+        chromeExecutablePath = await puppeteer.executablePath();
         console.log('✅ Chrome found at:', chromeExecutablePath);
         return chromeExecutablePath;
     } catch (error) {
-        console.warn('⚠️ Chrome not found locally, downloading...');
-        const browserFetcher = puppeteer.createBrowserFetcher();
-        const revisionInfo = await browserFetcher.download('1216951');
-        chromeExecutablePath = revisionInfo.executablePath;
-        console.log('✅ Chrome downloaded to:', chromeExecutablePath);
-        return chromeExecutablePath;
+        console.warn('⚠️ Chrome executable path not found:', error.message);
+        // Puppeteer v21+ downloads and manages browsers automatically
+        // We'll let it use the default managed browser
+        console.log('✅ Using Puppeteer-managed browser');
+        return null;
     }
 }
 
@@ -33,23 +32,29 @@ async function initializeBot() {
     try {
         const execPath = await getChromeExecutablePath();
         
+        const puppeteerConfig = {
+            headless: true,
+            userDataDir: path.join(process.env.HOME || '/tmp', '.wbot'),
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
+        };
+        
+        // Only add executablePath if it was found
+        if (execPath) {
+            puppeteerConfig.executablePath = execPath;
+        }
+        
         const client = new Client({
             authStrategy: new LocalAuth(),
-            puppeteer: {
-                headless: true,
-                executablePath: execPath,
-                userDataDir: path.join(process.env.HOME || '/tmp', '.wbot'),
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--single-process',
-                    '--disable-gpu'
-                ]
-            }
+            puppeteer: puppeteerConfig
         });
 
         const sessions = {};
