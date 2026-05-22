@@ -5,7 +5,8 @@
   "main": "vannybot/vannytech-bot.js",
   "scripts": {
     "start": "node vannybot/vannytech-bot.js",
-    "build": "npm install && npx puppeteer browsers install chrome"
+    "build": "npm install",
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "whatsapp-web.js": "^1.23.0",
@@ -14,6 +15,6 @@
     "puppeteer": "^21.0.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20"
   }
 }
