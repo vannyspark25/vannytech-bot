@@ -3,58 +3,46 @@ const qrcode = require('qrcode-terminal');
 const express = require('express');
 const puppeteer = require('puppeteer');
 const path = require('path');
+const fs = require('fs');
 
 // ── keep-alive server ──
 const app = express();
 app.get('/', (req, res) => res.send('✅ Vanny Tech Bot is running!'));
 app.listen(process.env.PORT || 3000, () => console.log('Keep-alive server on port 3000'));
 
-let chromeExecutablePath = null;
-
-async function getChromeExecutablePath() {
-    if (chromeExecutablePath) return chromeExecutablePath;
-    
-    try {
-        console.log('Attempting to get Chrome executable path...');
-        chromeExecutablePath = await puppeteer.executablePath();
-        console.log('✅ Chrome found at:', chromeExecutablePath);
-        return chromeExecutablePath;
-    } catch (error) {
-        console.warn('⚠️ Chrome executable path not found:', error.message);
-        // Puppeteer v21+ downloads and manages browsers automatically
-        // We'll let it use the default managed browser
-        console.log('✅ Using Puppeteer-managed browser');
-        return null;
-    }
-}
-
 async function initializeBot() {
     try {
-        const execPath = await getChromeExecutablePath();
+        console.log('🤖 Initializing VANNY TECH Bot...');
         
-        const puppeteerConfig = {
-            headless: true,
-            userDataDir: path.join(process.env.HOME || '/tmp', '.wbot'),
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process',
-                '--disable-gpu'
-            ]
-        };
-        
-        // Only add executablePath if it was found
-        if (execPath) {
-            puppeteerConfig.executablePath = execPath;
+        // Set up data directory for LocalAuth
+        const dataDir = path.join(process.env.HOME || '/tmp', '.wbot_data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
         }
         
+        // Puppeteer configuration for Render
+        const puppeteerArgs = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu',
+            '--disable-extensions'
+        ];
+
         const client = new Client({
-            authStrategy: new LocalAuth(),
-            puppeteer: puppeteerConfig
+            authStrategy: new LocalAuth({
+                clientId: 'vannytech-bot',
+                dataPath: dataDir
+            }),
+            puppeteer: {
+                headless: 'new',
+                args: puppeteerArgs,
+                executablePath: process.env.CHROME_BIN || undefined
+            }
         });
 
         const sessions = {};
@@ -241,15 +229,25 @@ Thank you for choosing *VANNY TECH!* 🙏`;
         });
 
         client.on('qr', qr => {
-            console.log('Scan this QR code with your WhatsApp:');
+            console.log('📱 Scan this QR code with your WhatsApp:');
             qrcode.generate(qr, { small: true });
         });
 
-        client.on('ready', () => console.log('✅ VANNY TECH Bot is live!'));
+        client.on('ready', () => {
+            console.log('✅ VANNY TECH Bot is live and ready!');
+        });
+
+        client.on('disconnected', (reason) => {
+            console.log('⚠️ Bot disconnected:', reason);
+        });
+
+        client.on('auth_failure', msg => {
+            console.error('❌ Authentication failed:', msg);
+        });
 
         client.initialize();
     } catch (error) {
-        console.error('❌ Bot initialization error:', error);
+        console.error('❌ Bot initialization error:', error.message);
         process.exit(1);
     }
 }
