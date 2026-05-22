@@ -1,0 +1,15 @@
+{
+  "name": "vannytech-bot",
+  "version": "1.0.0",
+  "description": "Vanny Tech WhatsApp Bot",
+  "main": "vannybot/vannytech-bot.js",
+  "scripts": {
+    "start": "node vannybot/vannytech-bot.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0",
+    "express": "^4.18.0",
+    "puppeteer": "^21.0.0"
+  }
+}
